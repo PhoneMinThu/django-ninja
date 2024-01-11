@@ -25,4 +25,4 @@ RUN chmod +x /usr/src/app/entrypoint.sh
 COPY . .
 
 # Set the entry point
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
