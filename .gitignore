@@ -1,4 +1,5 @@
 /data
 /.venv
 /project/static
+/project/staticfiles
 *__pycache__

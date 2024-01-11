@@ -2,7 +2,12 @@
 FROM python:3.11.4-slim-buster
 
 # set work directory
-WORKDIR /usr/src/app
+ENV HOME=/home/app
+RUN mkdir $HOME
+ENV APP_HOME=/home/app/web
+RUN mkdir $APP_HOME
+RUN mkdir $APP_HOME/staticfiles
+WORKDIR $APP_HOME
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -18,11 +23,11 @@ RUN pip install -r requirements.txt
 
 # copy entrypoint.sh
 COPY ./entrypoint.sh .
-RUN sed -i 's/\r$//g' /usr/src/app/entrypoint.sh
-RUN chmod +x /usr/src/app/entrypoint.sh
+RUN sed -i 's/\r$//g' /home/app/web/entrypoint.sh
+RUN chmod +x /home/app/web/entrypoint.sh
 
 # copy project
-COPY . .
+COPY . $APP_HOME
 
 # Set the entry point
-ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
+ENTRYPOINT ["/home/app/web/entrypoint.sh"]
