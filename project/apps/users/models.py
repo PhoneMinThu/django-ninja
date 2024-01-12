@@ -1,81 +1,48 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import ArrayField
+from django.contrib.auth.models import AbstractUser, PermissionsMixin, BaseUserManager
+from django.contrib.auth.hashers import make_password
 
 # Create your models here.
 
 
-class CustomPermissionManager(models.Manager):
+class UserManager(BaseUserManager):
 
-    def get_by_natural_key(self, codename, app_label, model):
-        return self.get(
-            codename=codename,
-            content_type=ContentType.objects.db_manager(self.db).get_by_natural_key(
-                app_label, model
-            ),
-        )
+    def normalized_phone_number(self, phone_number):
+        ''' not implemented '''
+        return phone_number
 
+    def _create_user(self, phone_number, password, **extra_fields):
+        """
+        Create and save a user with the given username, email, and password.
+        """
+        if not phone_number:
+            raise ValueError("The given phone_number must be set")
+        phone_number = self.normalized_phone_number(phone_number)
+        user = self.model(phone_number=phone_number, **extra_fields)
+        user.password = make_password(password)
+        user.save(using=self._db)
+        return user
 
-class CustomPermission(models.Model):
-    CREATE = 'create'
-    UPDATE = 'update'
-    PATCH = 'patch'
-    DELETE = 'delete'
-    RETRIEVE = 'retrieve'
-    LIST = 'list'
-    READ_ONLY = 'read_only'
-    NO_DELETE = 'no_delete'
-    ALL = 'all'
-    ACTIONS = [
-        (CREATE, CREATE),
-        (UPDATE, UPDATE),
-        (PATCH, PATCH),
-        (DELETE, DELETE),
-        (RETRIEVE, RETRIEVE),
-        (LIST, LIST),
-        (READ_ONLY, READ_ONLY),
-        (NO_DELETE, NO_DELETE),
-        (ALL, ALL),
-    ]
-    content_type = models.ForeignKey(
-        ContentType,
-        related_name="content_type_permissions",
-        on_delete=models.CASCADE,
-    )
-    actions = ArrayField(models.CharField(max_length=15, choices=ACTIONS), size=9)
+    def create_user(self, phone_number, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", False)
+        extra_fields.setdefault("is_superuser", False)
+        return self._create_user(phone_number, password, **extra_fields)
 
-    objects = CustomPermissionManager()
+    def create_superuser(self, phone_number, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
+        return self._create_user(phone_number, password, **extra_fields)
 
 
-class UserType(models.Model):
-    USER = 'user'
-    ADMIN = 'admin'
-    SUPER_ADMIN = 'super_admin'
-    TYPE_CHOICES = [
-        (USER, USER),
-        (ADMIN, ADMIN),
-        (SUPER_ADMIN, SUPER_ADMIN),
-    ]
-    user_type = models.CharField(choices=TYPE_CHOICES, max_length=11)
-
-    type_permissions = models.ManyToManyField(
-        CustomPermission,
-        related_name="user_types",
-        blank=True,
-    )
-
-
-class UserModel(AbstractBaseUser):
+class User(AbstractUser, PermissionsMixin):
     phone_number = models.CharField(max_length=11, unique=True)
-    user_types = models.ManyToManyField(
-        UserType,
-        related_name="users",
-    )
-    user_permissions = models.ManyToManyField(
-        CustomPermission,
-        blank=True,
-        related_name="users",
-    )
 
     USERNAME_FIELD = "phone_number"
+
+    objects = UserManager()

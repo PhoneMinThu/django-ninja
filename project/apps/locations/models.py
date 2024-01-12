@@ -1,11 +1,11 @@
 from django.db import models
-from apps.users.models import UserModel
+from apps.users.models import User
 # Create your models here.
 
 
 class UserLocations(models.Model):
     owner = models.ForeignKey(
-        UserModel,
+        User,
         related_name='user_locations',
         on_delete=models.CASCADE,
     )
